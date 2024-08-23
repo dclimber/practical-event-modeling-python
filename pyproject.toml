@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "Autonomo Python"
+version = "0.1.0"
+description = "Event Modeling example app Autonomo"
+authors = ["Dastan Abdrakhmanov <dastand.climber@gmail.com>"]
+license = "MIT"
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+coverage = "^7.5.1"
+pytest-cov = "^3.0.0"
+pytest-icdiff = "^0.6"
+
+[tool.poetry.group.adapters.dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
