@@ -73,7 +73,9 @@ class VehicleReturning(VehicleEvent):
 class InventoryVehicle(Vehicle):
 
     def evolve(self, event: VehicleEvent) -> "Vehicle":
-        pass
+        if isinstance(event, VehicleAvailable):
+            return AvailableVehicle(event.vin, self.owner_id)
+        return self
 
 
 class AvailableVehicle(Vehicle):
@@ -84,7 +86,9 @@ class AvailableVehicle(Vehicle):
 
 class OccupiedVehicle(Vehicle):
     def evolve(self, event: VehicleEvent) -> "Vehicle":
-        pass
+        if isinstance(event, VehicleAvailable):
+            return AvailableVehicle(event.vin, self.owner_id)
+        return self
 
 
 class OccupiedReturningVehicle(Vehicle):
