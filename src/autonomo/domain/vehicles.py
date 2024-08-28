@@ -31,20 +31,6 @@ class Vehicle(abc.ABC):
     def evolve(self, event: VehicleEvent) -> "Vehicle":
         raise NotImplementedError()
 
-    # @property
-    # @abc.abstractmethod
-    # def year(self) -> str:
-    #     raise NotImplementedError()
-
-    # @property
-    # @abc.abstractmethod
-    # def make(self, event: VehicleEvent) -> "Vehicle":
-    #     raise NotImplementedError()
-
-    # @abc.abstractmethod
-    # def evolve(self, event: VehicleEvent) -> "Vehicle":
-    #     raise NotImplementedError()
-
 
 @dataclasses.dataclass()
 class VehicleCommand(interfaces.Command):
@@ -63,10 +49,24 @@ class MakeVehicleAvailable(VehicleCommand):
         raise VehicleCommandError()
 
 
+class MarkVehicleUnoccupied(VehicleCommand):
+    def decide(self, state: Vehicle) -> list[Type[VehicleEvent]]:
+        if isinstance(state, OccupiedVehicle):
+            return [VehicleAvailable(state.vin, datetime.datetime.now())]
+        if isinstance(state, OccupiedReturningVehicle):
+            return [VehicleReturning(state.vin, datetime.datetime.now())]
+        raise VehicleCommandError()
+
+
 # ---- Events ----
 @dataclasses.dataclass()
 class VehicleAvailable(VehicleEvent):
     available_at: datetime.datetime
+
+
+@dataclasses.dataclass()
+class VehicleReturning(VehicleEvent):
+    returning_at: datetime.datetime
 
 
 # ---- Aggregate / Read Models ----
@@ -78,5 +78,15 @@ class InventoryVehicle(Vehicle):
 
 class AvailableVehicle(Vehicle):
 
+    def evolve(self, event: VehicleEvent) -> "Vehicle":
+        pass
+
+
+class OccupiedVehicle(Vehicle):
+    def evolve(self, event: VehicleEvent) -> "Vehicle":
+        pass
+
+
+class OccupiedReturningVehicle(Vehicle):
     def evolve(self, event: VehicleEvent) -> "Vehicle":
         pass
