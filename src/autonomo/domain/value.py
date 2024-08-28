@@ -1,6 +1,8 @@
 import re
+import uuid
 
 
+# ---- Related errors ----
 class InvalidLatitude(ValueError):
     pass
 
@@ -11,6 +13,19 @@ class InvalidLongitude(ValueError):
 
 class InvalidVinError(ValueError):
     pass
+
+
+# ---- Value objects ----
+class UserId(uuid.UUID):
+    @classmethod
+    def random_uuid(cls) -> "UserId":
+        return cls(str(uuid.uuid4()))
+
+
+class RideId(uuid.UUID):
+    @classmethod
+    def random_uuid(cls) -> "RideId":
+        return cls(str(uuid.uuid4()))
 
 
 class GeoCoordinates:
