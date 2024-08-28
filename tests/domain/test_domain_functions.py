@@ -68,3 +68,19 @@ class TestDomainFunctions:
         initial_ride_state = rides.InitialRideState()
         with pytest.raises(rides.RideCommandError):
             command.decide(initial_ride_state)
+
+    def test_evolve_on_ride_requested(self):
+        ride_id = value.RideId.random_uuid()
+        applicable_event = rides.RideRequested(
+            ride_id, rider_id, origin, destination, datetime.now(), datetime.now()
+        )
+
+        result = rides.InitialRideState().evolve(applicable_event)
+        assert isinstance(result, rides.RequestedRide)
+        assert result.id == ride_id
+
+        not_applicable_event = rides.RequestedRideCancelled(ride_id, datetime.now())
+        assert (
+            rides.InitialRideState().evolve(not_applicable_event)
+            == rides.InitialRideState()
+        )
