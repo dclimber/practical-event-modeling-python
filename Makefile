@@ -4,4 +4,4 @@ setup:
 	poetry install
 
 test:
-	PYTHONPATH=components/ poetry run pytest tests/
+	PYTHONPATH=src/ poetry run pytest tests/
