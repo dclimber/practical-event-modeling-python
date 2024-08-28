@@ -169,3 +169,13 @@ class TestDomainFunctions:
         occupied_vehicle_result = occupied_vehicle.evolve(vehicle_available)
 
         assert isinstance(occupied_vehicle_result, vehicles.AvailableVehicle)
+
+    def test_evolve_on_vehicle_return_requested(self):
+        vehicle_return_requested = vehicles.VehicleReturnRequested(
+            VALID_VIN, datetime.now()
+        )
+        occupied_vehicle = vehicles.OccupiedVehicle(VALID_VIN, owner_id)
+
+        occupied_vehicle_result = occupied_vehicle.evolve(vehicle_return_requested)
+
+        assert isinstance(occupied_vehicle_result, vehicles.OccupiedReturningVehicle)
