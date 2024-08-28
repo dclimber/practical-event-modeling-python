@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Event Modeling example app Autonomo"
 authors = ["Dastan Abdrakhmanov <dastand.climber@gmail.com>"]
 license = "MIT"
+package-mode = false
 
 [[tool.poetry.source]]
 name = "PyPI"
@@ -17,8 +18,18 @@ pytest = "^8.2.0"
 coverage = "^7.5.1"
 pytest-cov = "^3.0.0"
 pytest-icdiff = "^0.6"
+pytest-mock = "^3.14.0"
 
 [tool.poetry.group.adapters.dependencies]
+grpcio = "^1.65.4"
+grpcio-tools = "^1.65.4"
+types-protobuf = "^5.27.0.20240626"
+confluent-kafka = "^2.5.0"
+protobuf = "^5.27.4"
+requests = "^2.32.3"
+faust = "^1.10.4"
+fastapi = "^0.112.2"
+uvicorn = "^0.30.6"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
