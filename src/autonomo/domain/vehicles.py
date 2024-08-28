@@ -69,6 +69,11 @@ class VehicleReturning(VehicleEvent):
     returning_at: datetime.datetime
 
 
+@dataclasses.dataclass()
+class VehicleReturnRequested(VehicleEvent):
+    requested_at: datetime.datetime
+
+
 # ---- Aggregate / Read Models ----
 class InventoryVehicle(Vehicle):
 
@@ -88,6 +93,8 @@ class OccupiedVehicle(Vehicle):
     def evolve(self, event: VehicleEvent) -> "Vehicle":
         if isinstance(event, VehicleAvailable):
             return AvailableVehicle(event.vin, self.owner_id)
+        if isinstance(event, VehicleReturnRequested):
+            return OccupiedReturningVehicle(self.vin, self.owner_id)
         return self
 
 
