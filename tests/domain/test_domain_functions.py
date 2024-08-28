@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import pytest
-from autonomo.domain import rides, value
+from autonomo.domain import rides, value, vehicles
 
 VALID_VIN = value.Vin.build("1FTZX1722XKA76091")
 owner_id = value.UserId.random_uuid()
@@ -115,3 +115,14 @@ class TestDomainFunctions:
 
         assert requested_ride.evolve(not_applicable_event) == requested_ride
         assert scheduled_ride.evolve(not_applicable_event) == scheduled_ride
+
+    def test_decide_on_make_vehicle_available(self):
+        valid_initial_state = vehicles.InventoryVehicle(VALID_VIN, owner_id)
+
+        command = vehicles.MakeVehicleAvailable(VALID_VIN)
+        result = command.decide(valid_initial_state)
+        assert len(result) == 1
+        assert isinstance(result[0], vehicles.VehicleAvailable)
+
+        with pytest.raises(vehicles.VehicleCommandError):
+            command.decide(vehicles.AvailableVehicle(VALID_VIN, owner_id))
