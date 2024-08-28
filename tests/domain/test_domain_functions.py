@@ -154,3 +154,18 @@ class TestDomainFunctions:
         assert isinstance(result[0], vehicles.VehicleReturning)
         with pytest.raises(vehicles.VehicleCommandError):
             command.decide(vehicles.AvailableVehicle(VALID_VIN, owner_id))
+
+    def test_evolve_on_vehicle_available(self):
+        vehicle_available = vehicles.VehicleAvailable(VALID_VIN, datetime.now())
+        # test inventory vehicle
+        inventory_vehicle = vehicles.InventoryVehicle(VALID_VIN, owner_id)
+
+        inventory_vehicle_result = inventory_vehicle.evolve(vehicle_available)
+
+        assert isinstance(inventory_vehicle_result, vehicles.AvailableVehicle)
+        # test occupied vehicle
+        occupied_vehicle = vehicles.OccupiedVehicle(VALID_VIN, owner_id)
+
+        occupied_vehicle_result = occupied_vehicle.evolve(vehicle_available)
+
+        assert isinstance(occupied_vehicle_result, vehicles.AvailableVehicle)
