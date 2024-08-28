@@ -156,23 +156,67 @@ class InitialRideState(Ride):
 class RequestedRide(Ride):
     id: value.RideId
     rider: value.UserId
-    pickup_time: datetime.datetime
-    origin: value.GeoCoordinates
-    destination: value.GeoCoordinates
+    requested_pickup_time: datetime.datetime
+    pickup_location: value.GeoCoordinates
+    drop_off_location: value.GeoCoordinates
     requested_at: datetime.datetime
 
     def evolve(self, event: RideEvent) -> "Ride":
-        pass
+        if isinstance(event, RequestedRideCancelled):
+            return CancelledRequestedRide(
+                self.id,
+                self.rider,
+                self.requested_pickup_time,
+                self.pickup_location,
+                self.drop_off_location,
+                event.cancelled_at,
+            )
+        return self
 
 
 @dataclasses.dataclass()
 class ScheduledRide(Ride):
     rider: value.UserId
-    pickup_time: datetime.datetime
-    origin: value.GeoCoordinates
-    destination: value.GeoCoordinates
+    scheduled_pickup_time: datetime.datetime
+    pickup_location: value.GeoCoordinates
+    drop_off_location: value.GeoCoordinates
     vin: value.Vin
     scheduled_at: datetime.datetime
 
     def evolve(self, event: RideEvent) -> "Ride":
-        pass
+        if isinstance(event, ScheduledRideCancelled):
+            return CancelledScheduledRide(
+                self.id,
+                self.rider,
+                self.scheduled_pickup_time,
+                self.pickup_location,
+                self.drop_off_location,
+                self.scheduled_at,
+                event.cancelled_at,
+            )
+        return self
+
+
+@dataclasses.dataclass()
+class CancelledRequestedRide(Ride):
+    rider: value.UserId
+    requested_pickup_time: datetime.datetime
+    pickup_location: value.GeoCoordinates
+    drop_off_location: value.GeoCoordinates
+    cancelled_at: datetime.datetime
+
+    def evolve(self, _: RideEvent) -> "Ride":
+        return self
+
+
+@dataclasses.dataclass()
+class CancelledScheduledRide(Ride):
+    rider: value.UserId
+    scheduled_pickup_time: datetime.datetime
+    pickup_location: value.GeoCoordinates
+    drop_off_location: value.GeoCoordinates
+    scheduled_at: datetime.datetime
+    cancelled_at: datetime.datetime
+
+    def evolve(self, _: RideEvent) -> "Ride":
+        return self
