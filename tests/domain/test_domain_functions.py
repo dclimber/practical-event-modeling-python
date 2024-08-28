@@ -135,5 +135,22 @@ class TestDomainFunctions:
         with pytest.raises(vehicles.VehicleCommandError):
             command.decide(vehicles.AvailableVehicle(VALID_VIN, owner_id))
 
+    def test_decide_on_mark_vehicle_unoccupied(self):
+        command = vehicles.MarkVehicleUnoccupied(VALID_VIN)
+        occupied_vehicle = vehicles.OccupiedVehicle(VALID_VIN, owner_id)
+
+        result = command.decide(occupied_vehicle)
+
+        assert len(result) == 1
+        assert isinstance(result[0], vehicles.VehicleAvailable)
+        # test occupied returning vehicle
+        occupied_returning_vehicle = vehicles.OccupiedReturningVehicle(
+            VALID_VIN, owner_id
+        )
+
+        result = command.decide(occupied_returning_vehicle)
+
+        assert len(result) == 1
+        assert isinstance(result[0], vehicles.VehicleReturning)
         with pytest.raises(vehicles.VehicleCommandError):
             command.decide(vehicles.AvailableVehicle(VALID_VIN, owner_id))
