@@ -16,13 +16,10 @@ class TestDomainFunctions:
         valid_initial_state = rides.InitialRideState()
         command = rides.RequestRide(rider_id, origin, destination, datetime.now())
 
-        try:
-            result = command.decide(valid_initial_state)
-            assert len(result) == 1
-            assert isinstance(result[0], rides.RideRequested)
-        except Exception:
-            pytest.fail("Decide on Request Ride failed unexpectedly.")
+        result = command.decide(valid_initial_state)
 
+        assert len(result) == 1
+        assert isinstance(result[0], rides.RideRequested)
         with pytest.raises(rides.RideCommandError):
             command.decide(
                 rides.RequestedRide(
@@ -42,13 +39,10 @@ class TestDomainFunctions:
         requested_ride = rides.RequestedRide(
             ride_id, rider_id, datetime.now(), origin, destination, datetime.now()
         )
-        try:
-            result = command.decide(requested_ride)
-            assert len(result) == 1
-            assert isinstance(result[0], rides.RequestedRideCancelled)
-        except Exception:
-            pytest.fail("Decide on Cancel Ride failed unexpectedly.")
+        result = command.decide(requested_ride)
 
+        assert len(result) == 1
+        assert isinstance(result[0], rides.RequestedRideCancelled)
         scheduled_ride = rides.ScheduledRide(
             ride_id,
             rider_id,
@@ -58,14 +52,13 @@ class TestDomainFunctions:
             VALID_VIN,
             datetime.now(),
         )
-        try:
-            result = command.decide(scheduled_ride)
-            assert len(result) == 1
-            assert isinstance(result[0], rides.ScheduledRideCancelled)
-        except Exception:
-            pytest.fail("Decide on Cancel Ride failed unexpectedly for ScheduledRide.")
+
+        result = command.decide(scheduled_ride)
+        assert len(result) == 1
+        assert isinstance(result[0], rides.ScheduledRideCancelled)
 
         initial_ride_state = rides.InitialRideState()
+
         with pytest.raises(rides.RideCommandError):
             command.decide(initial_ride_state)
 
@@ -76,10 +69,12 @@ class TestDomainFunctions:
         )
 
         result = rides.InitialRideState().evolve(applicable_event)
+
         assert isinstance(result, rides.RequestedRide)
         assert result.id == ride_id
 
         not_applicable_event = rides.RequestedRideCancelled(ride_id, datetime.now())
+
         assert (
             rides.InitialRideState().evolve(not_applicable_event)
             == rides.InitialRideState()
@@ -117,5 +112,6 @@ class TestDomainFunctions:
         not_applicable_event = rides.RideRequested(
             ride_id, rider_id, origin, destination, datetime.now(), datetime.now()
         )
+
         assert requested_ride.evolve(not_applicable_event) == requested_ride
         assert scheduled_ride.evolve(not_applicable_event) == scheduled_ride
