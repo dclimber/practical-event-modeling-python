@@ -3,179 +3,305 @@ from datetime import datetime
 import pytest
 from autonomo.domain import rides, value, vehicles
 
-VALID_VIN = value.Vin.build("1FTZX1722XKA76091")
-owner_id = value.UserId.random_uuid()
-rider_id = value.UserId.random_uuid()
-origin = value.GeoCoordinates(37.3861, -122.0839)
-destination = value.GeoCoordinates(40.4249, -111.7979)
+
+@pytest.fixture
+def valid_vin():
+    return value.Vin.build("1FTZX1722XKA76091")
 
 
-class TestDomainFunctions:
+@pytest.fixture
+def owner_id():
+    return value.UserId.random_uuid()
 
-    def test_decide_on_request_ride(self):
+
+@pytest.fixture
+def rider_id():
+    return value.UserId.random_uuid()
+
+
+@pytest.fixture
+def origin():
+    return value.GeoCoordinates(37.3861, -122.0839)
+
+
+@pytest.fixture
+def destination():
+    return value.GeoCoordinates(40.4249, -111.7979)
+
+
+@pytest.fixture
+def ride_id():
+    return value.RideId.random_uuid()
+
+
+@pytest.fixture
+def current_time():
+    return datetime.now()
+
+
+class TestRequestRide:
+
+    def test_decide_on_valid_initial_state_creates_ride_requested_event(
+        self, rider_id, origin, destination, current_time
+    ):
+        # Arrange
         valid_initial_state = rides.InitialRideState()
-        command = rides.RequestRide(rider_id, origin, destination, datetime.now())
+        command = rides.RequestRide(rider_id, origin, destination, current_time)
 
+        # Act
         result = command.decide(valid_initial_state)
 
+        # Assert
         assert len(result) == 1
         assert isinstance(result[0], rides.RideRequested)
-        with pytest.raises(rides.RideCommandError):
-            command.decide(
-                rides.RequestedRide(
-                    value.RideId.random_uuid(),
-                    rider_id,
-                    datetime.now(),
-                    origin,
-                    destination,
-                    datetime.now(),
-                )
-            )
 
-    def test_decide_on_cancel_ride(self):
-        ride_id = value.RideId.random_uuid()
-        command = rides.CancelRide(ride_id)
-        # test requested ride event
-        requested_ride = rides.RequestedRide(
-            ride_id, rider_id, datetime.now(), origin, destination, datetime.now()
+    def test_decide_on_invalid_state_raises_ride_command_error(
+        self, rider_id, origin, destination, current_time
+    ):
+        # Arrange
+        command = rides.RequestRide(rider_id, origin, destination, current_time)
+        invalid_state = rides.RequestedRide(
+            value.RideId.random_uuid(),
+            rider_id,
+            current_time,
+            origin,
+            destination,
+            current_time,
         )
 
+        # Act and Assert
+        with pytest.raises(rides.RideCommandError):
+            command.decide(invalid_state)
+
+
+class TestCancelRide:
+
+    def test_decide_on_requested_ride_creates_requested_ride_cancelled_event(
+        self, ride_id, rider_id, origin, destination, current_time
+    ):
+        # Arrange
+        command = rides.CancelRide(ride_id)
+        requested_ride = rides.RequestedRide(
+            ride_id, rider_id, current_time, origin, destination, current_time
+        )
+
+        # Act
         result = command.decide(requested_ride)
 
+        # Assert
         assert len(result) == 1
         assert isinstance(result[0], rides.RequestedRideCancelled)
-        # test scheduled ride event
+
+    def test_decide_on_scheduled_ride_creates_scheduled_ride_cancelled_event(
+        self, ride_id, rider_id, origin, destination, valid_vin, current_time
+    ):
+        # Arrange
+        command = rides.CancelRide(ride_id)
         scheduled_ride = rides.ScheduledRide(
             ride_id,
             rider_id,
-            datetime.now(),
+            current_time,
             origin,
             destination,
-            VALID_VIN,
-            datetime.now(),
+            valid_vin,
+            current_time,
         )
 
+        # Act
         result = command.decide(scheduled_ride)
 
+        # Assert
         assert len(result) == 1
         assert isinstance(result[0], rides.ScheduledRideCancelled)
 
-        # test initial ride state
-        initial_ride_state = rides.InitialRideState()
+    def test_decide_on_initial_ride_state_raises_ride_command_error(self, ride_id):
+        # Arrange
+        command = rides.CancelRide(ride_id)
 
+        # Act and Assert
         with pytest.raises(rides.RideCommandError):
-            command.decide(initial_ride_state)
+            command.decide(rides.InitialRideState())
 
-    def test_evolve_on_ride_requested(self):
-        ride_id = value.RideId.random_uuid()
-        # test applicable event
+
+class TestEvolveRide:
+
+    def test_evolve_from_initial_to_requested_ride(
+        self, ride_id, rider_id, origin, destination, current_time
+    ):
+        # Arrange
         applicable_event = rides.RideRequested(
-            ride_id, rider_id, origin, destination, datetime.now(), datetime.now()
+            ride_id, rider_id, origin, destination, current_time, current_time
         )
 
+        # Act
         result = rides.InitialRideState().evolve(applicable_event)
 
+        # Assert
         assert isinstance(result, rides.RequestedRide)
         assert result.id == ride_id
-        # test not applicable event
-        not_applicable_event = rides.RequestedRideCancelled(ride_id, datetime.now())
 
-        assert (
-            rides.InitialRideState().evolve(not_applicable_event)
-            == rides.InitialRideState()
-        )
+    def test_evolve_ignores_not_applicable_event(self, ride_id, current_time):
+        # Arrange
+        not_applicable_event = rides.RequestedRideCancelled(ride_id, current_time)
 
-    def test_evolve_on_ride_cancelled(self):
-        ride_id = value.RideId.random_uuid()
-        # test requested ride cancelled
-        requested_ride_cancelled = rides.RequestedRideCancelled(ride_id, datetime.now())
+        # Act
+        result = rides.InitialRideState().evolve(not_applicable_event)
+
+        # Assert
+        assert result == rides.InitialRideState()
+
+    def test_evolve_requested_ride_to_cancelled_requested_ride(
+        self, ride_id, rider_id, origin, destination, current_time
+    ):
+        # Arrange
         requested_ride = rides.RequestedRide(
-            ride_id, rider_id, datetime.now(), origin, destination, datetime.now()
+            ride_id, rider_id, current_time, origin, destination, current_time
         )
+        requested_ride_cancelled = rides.RequestedRideCancelled(ride_id, current_time)
 
-        requested_ride_result = requested_ride.evolve(requested_ride_cancelled)
+        # Act
+        result = requested_ride.evolve(requested_ride_cancelled)
 
-        assert isinstance(requested_ride_result, rides.CancelledRequestedRide)
-        assert requested_ride_result.id == ride_id
-        # test scheduled ride cancelled
-        scheduled_ride_cancelled = rides.ScheduledRideCancelled(
-            ride_id, VALID_VIN, datetime.now()
-        )
+        # Assert
+        assert isinstance(result, rides.CancelledRequestedRide)
+        assert result.id == ride_id
+
+    def test_evolve_scheduled_ride_to_cancelled_scheduled_ride(
+        self, ride_id, rider_id, origin, destination, valid_vin, current_time
+    ):
+        # Arrange
         scheduled_ride = rides.ScheduledRide(
             ride_id,
             rider_id,
-            datetime.now(),
+            current_time,
             origin,
             destination,
-            VALID_VIN,
-            datetime.now(),
+            valid_vin,
+            current_time,
+        )
+        scheduled_ride_cancelled = rides.ScheduledRideCancelled(
+            ride_id, valid_vin, current_time
         )
 
-        scheduled_ride_result = scheduled_ride.evolve(scheduled_ride_cancelled)
+        # Act
+        result = scheduled_ride.evolve(scheduled_ride_cancelled)
 
-        assert isinstance(scheduled_ride_result, rides.CancelledScheduledRide)
-        assert scheduled_ride_result.id == ride_id
+        # Assert
+        assert isinstance(result, rides.CancelledScheduledRide)
+        assert result.id == ride_id
 
-        # test not applicable event
-        not_applicable_event = rides.RideRequested(
-            ride_id, rider_id, origin, destination, datetime.now(), datetime.now()
-        )
 
-        assert requested_ride.evolve(not_applicable_event) == requested_ride
-        assert scheduled_ride.evolve(not_applicable_event) == scheduled_ride
+class TestMakeVehicleAvailable:
 
-    def test_decide_on_make_vehicle_available(self):
-        valid_initial_state = vehicles.InventoryVehicle(VALID_VIN, owner_id)
-        command = vehicles.MakeVehicleAvailable(VALID_VIN)
+    def test_decide_on_inventory_vehicle_creates_vehicle_available_event(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        valid_initial_state = vehicles.InventoryVehicle(valid_vin, owner_id)
+        command = vehicles.MakeVehicleAvailable(valid_vin)
 
+        # Act
         result = command.decide(valid_initial_state)
 
+        # Assert
         assert len(result) == 1
         assert isinstance(result[0], vehicles.VehicleAvailable)
+
+    def test_decide_on_invalid_state_raises_vehicle_command_error(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        command = vehicles.MakeVehicleAvailable(valid_vin)
+        invalid_state = vehicles.AvailableVehicle(valid_vin, owner_id)
+
+        # Act and Assert
         with pytest.raises(vehicles.VehicleCommandError):
-            command.decide(vehicles.AvailableVehicle(VALID_VIN, owner_id))
+            command.decide(invalid_state)
 
-    def test_decide_on_mark_vehicle_unoccupied(self):
-        command = vehicles.MarkVehicleUnoccupied(VALID_VIN)
-        occupied_vehicle = vehicles.OccupiedVehicle(VALID_VIN, owner_id)
 
+class TestMarkVehicleUnoccupied:
+
+    def test_decide_on_occupied_vehicle_creates_vehicle_available_event(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        occupied_vehicle = vehicles.OccupiedVehicle(valid_vin, owner_id)
+        command = vehicles.MarkVehicleUnoccupied(valid_vin)
+
+        # Act
         result = command.decide(occupied_vehicle)
 
+        # Assert
         assert len(result) == 1
         assert isinstance(result[0], vehicles.VehicleAvailable)
-        # test occupied returning vehicle
-        occupied_returning_vehicle = vehicles.OccupiedReturningVehicle(
-            VALID_VIN, owner_id
-        )
 
+    def test_decide_on_occupied_returning_vehicle_creates_vehicle_returning_event(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        occupied_returning_vehicle = vehicles.OccupiedReturningVehicle(
+            valid_vin, owner_id
+        )
+        command = vehicles.MarkVehicleUnoccupied(valid_vin)
+
+        # Act
         result = command.decide(occupied_returning_vehicle)
 
+        # Assert
         assert len(result) == 1
         assert isinstance(result[0], vehicles.VehicleReturning)
+
+    def test_decide_on_invalid_state_raises_vehicle_command_error(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        command = vehicles.MarkVehicleUnoccupied(valid_vin)
+        invalid_state = vehicles.AvailableVehicle(valid_vin, owner_id)
+
+        # Act and Assert
         with pytest.raises(vehicles.VehicleCommandError):
-            command.decide(vehicles.AvailableVehicle(VALID_VIN, owner_id))
+            command.decide(invalid_state)
 
-    def test_evolve_on_vehicle_available(self):
-        vehicle_available = vehicles.VehicleAvailable(VALID_VIN, datetime.now())
-        # test inventory vehicle
-        inventory_vehicle = vehicles.InventoryVehicle(VALID_VIN, owner_id)
 
-        inventory_vehicle_result = inventory_vehicle.evolve(vehicle_available)
+class TestEvolveVehicle:
 
-        assert isinstance(inventory_vehicle_result, vehicles.AvailableVehicle)
-        # test occupied vehicle
-        occupied_vehicle = vehicles.OccupiedVehicle(VALID_VIN, owner_id)
+    def test_evolve_inventory_vehicle_to_available_vehicle(
+        self, valid_vin, owner_id, current_time
+    ):
+        # Arrange
+        inventory_vehicle = vehicles.InventoryVehicle(valid_vin, owner_id)
+        vehicle_available = vehicles.VehicleAvailable(valid_vin, current_time)
 
-        occupied_vehicle_result = occupied_vehicle.evolve(vehicle_available)
+        # Act
+        result = inventory_vehicle.evolve(vehicle_available)
 
-        assert isinstance(occupied_vehicle_result, vehicles.AvailableVehicle)
+        # Assert
+        assert isinstance(result, vehicles.AvailableVehicle)
 
-    def test_evolve_on_vehicle_return_requested(self):
+    def test_evolve_occupied_vehicle_to_available_vehicle(
+        self, valid_vin, owner_id, current_time
+    ):
+        # Arrange
+        occupied_vehicle = vehicles.OccupiedVehicle(valid_vin, owner_id)
+        vehicle_available = vehicles.VehicleAvailable(valid_vin, current_time)
+
+        # Act
+        result = occupied_vehicle.evolve(vehicle_available)
+
+        # Assert
+        assert isinstance(result, vehicles.AvailableVehicle)
+
+    def test_evolve_occupied_vehicle_to_occupied_returning_vehicle(
+        self, valid_vin, owner_id, current_time
+    ):
+        # Arrange
+        occupied_vehicle = vehicles.OccupiedVehicle(valid_vin, owner_id)
         vehicle_return_requested = vehicles.VehicleReturnRequested(
-            VALID_VIN, datetime.now()
+            valid_vin, current_time
         )
-        occupied_vehicle = vehicles.OccupiedVehicle(VALID_VIN, owner_id)
 
-        occupied_vehicle_result = occupied_vehicle.evolve(vehicle_return_requested)
+        # Act
+        result = occupied_vehicle.evolve(vehicle_return_requested)
 
-        assert isinstance(occupied_vehicle_result, vehicles.OccupiedReturningVehicle)
+        # Assert
+        assert isinstance(result, vehicles.OccupiedReturningVehicle)
