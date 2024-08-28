@@ -121,8 +121,11 @@ class TestDomainFunctions:
 
         command = vehicles.MakeVehicleAvailable(VALID_VIN)
         result = command.decide(valid_initial_state)
+
         assert len(result) == 1
         assert isinstance(result[0], vehicles.VehicleAvailable)
+        with pytest.raises(vehicles.VehicleCommandError):
+            command.decide(vehicles.AvailableVehicle(VALID_VIN, owner_id))
 
         with pytest.raises(vehicles.VehicleCommandError):
             command.decide(vehicles.AvailableVehicle(VALID_VIN, owner_id))

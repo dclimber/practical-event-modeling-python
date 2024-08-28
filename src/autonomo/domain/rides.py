@@ -1,7 +1,6 @@
 import abc
 import dataclasses
 import datetime
-import uuid
 from typing import NoReturn, Type
 
 from autonomo.domain import interfaces, value
