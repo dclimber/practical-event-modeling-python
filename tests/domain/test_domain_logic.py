@@ -445,3 +445,246 @@ class TestEvolveVehicle:
 
         # Assert
         assert isinstance(result, vehicles.OccupiedReturningVehicle)
+
+
+class TestAddVehicle:
+
+    def test_decide_on_initial_state_creates_vehicle_added_event(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        initial_state = vehicles.InitialVehicleState()
+        command = vehicles.AddVehicle(owner=owner_id, vin=valid_vin)
+
+        # Act
+        result = command.decide(initial_state)
+
+        # Assert
+        assert len(result) == 1
+        assert isinstance(result[0], vehicles.VehicleAdded)
+        assert result[0].vin == valid_vin
+        assert result[0].owner == owner_id
+
+    def test_decide_on_non_initial_state_raises_vehicle_command_error(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        state = vehicles.InventoryVehicle(valid_vin, owner_id)
+        command = vehicles.AddVehicle(owner=owner_id, vin=valid_vin)
+
+        # Act & Assert
+        with pytest.raises(vehicles.VehicleCommandError):
+            command.decide(state)
+
+
+class TestMarkVehicleOccupied:
+
+    def test_decide_on_available_vehicle_creates_vehicle_occupied_event(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        available_vehicle = vehicles.AvailableVehicle(valid_vin, owner_id)
+        command = vehicles.MarkVehicleOccupied(valid_vin)
+
+        # Act
+        result = command.decide(available_vehicle)
+
+        # Assert
+        assert len(result) == 1
+        assert isinstance(result[0], vehicles.VehicleOccupied)
+        assert result[0].vin == valid_vin
+
+    def test_decide_on_non_available_state_raises_vehicle_command_error(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        state = vehicles.OccupiedVehicle(valid_vin, owner_id)
+        command = vehicles.MarkVehicleOccupied(valid_vin)
+
+        # Act & Assert
+        with pytest.raises(vehicles.VehicleCommandError):
+            command.decide(state)
+
+
+class TestRequestVehicleReturn:
+
+    def test_decide_on_available_vehicle_creates_vehicle_returning_event(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        available_vehicle = vehicles.AvailableVehicle(valid_vin, owner_id)
+        command = vehicles.RequestVehicleReturn(valid_vin)
+
+        # Act
+        result = command.decide(available_vehicle)
+
+        # Assert
+        assert len(result) == 1
+        assert isinstance(result[0], vehicles.VehicleReturning)
+        assert result[0].vin == valid_vin
+
+    def test_decide_on_occupied_vehicle_creates_vehicle_return_requested_event(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        occupied_vehicle = vehicles.OccupiedVehicle(valid_vin, owner_id)
+        command = vehicles.RequestVehicleReturn(valid_vin)
+
+        # Act
+        result = command.decide(occupied_vehicle)
+
+        # Assert
+        assert len(result) == 1
+        assert isinstance(result[0], vehicles.VehicleReturnRequested)
+        assert result[0].vin == valid_vin
+
+    def test_decide_on_non_applicable_state_raises_vehicle_command_error(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        state = vehicles.InventoryVehicle(valid_vin, owner_id)
+        command = vehicles.RequestVehicleReturn(valid_vin)
+
+        # Act & Assert
+        with pytest.raises(vehicles.VehicleCommandError):
+            command.decide(state)
+
+
+class TestConfirmVehicleReturn:
+
+    def test_decide_on_returning_vehicle_creates_vehicle_returned_event(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        returning_vehicle = vehicles.ReturningVehicle(valid_vin, owner_id)
+        command = vehicles.ConfirmVehicleReturn(valid_vin)
+
+        # Act
+        result = command.decide(returning_vehicle)
+
+        # Assert
+        assert len(result) == 1
+        assert isinstance(result[0], vehicles.VehicleReturned)
+        assert result[0].vin == valid_vin
+
+    def test_decide_on_non_returning_state_raises_vehicle_command_error(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        state = vehicles.AvailableVehicle(valid_vin, owner_id)
+        command = vehicles.ConfirmVehicleReturn(valid_vin)
+
+        # Act & Assert
+        with pytest.raises(vehicles.VehicleCommandError):
+            command.decide(state)
+
+
+class TestRemoveVehicle:
+
+    def test_decide_on_inventory_vehicle_creates_vehicle_removed_event(
+        self, valid_vin, owner_id, current_time
+    ):
+        # Arrange
+        inventory_vehicle = vehicles.InventoryVehicle(valid_vin, owner_id)
+        command = vehicles.RemoveVehicle(valid_vin, owner_id)
+
+        # Act
+        result = command.decide(inventory_vehicle)
+
+        # Assert
+        assert len(result) == 1
+        assert isinstance(result[0], vehicles.VehicleRemoved)
+        assert result[0].vin == valid_vin
+        assert result[0].owner == owner_id
+
+    def test_decide_on_non_inventory_state_raises_vehicle_command_error(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        state = vehicles.AvailableVehicle(valid_vin, owner_id)
+        command = vehicles.RemoveVehicle(owner_id, valid_vin)
+
+        # Act & Assert
+        with pytest.raises(vehicles.VehicleCommandError):
+            command.decide(state)
+
+
+class TestVehicleEvolve:
+
+    def test_initial_vehicle_state_evolve_to_inventory_vehicle(
+        self, valid_vin, owner_id
+    ):
+        # Arrange
+        event = vehicles.VehicleAdded(
+            valid_vin,
+            owner_id,
+        )
+        state = vehicles.InitialVehicleState()
+
+        # Act
+        result = state.evolve(event)
+
+        # Assert
+        assert isinstance(result, vehicles.InventoryVehicle)
+        assert result.vin == valid_vin
+        assert result.owner == owner_id
+
+    def test_inventory_vehicle_evolve_to_available_vehicle(
+        self, valid_vin, owner_id, current_time
+    ):
+        # Arrange
+        event = vehicles.VehicleAvailable(valid_vin, current_time)
+        state = vehicles.InventoryVehicle(valid_vin, owner_id)
+
+        # Act
+        result = state.evolve(event)
+
+        # Assert
+        assert isinstance(result, vehicles.AvailableVehicle)
+        assert result.vin == valid_vin
+        assert result.owner == owner_id
+
+    def test_available_vehicle_evolve_to_occupied_vehicle(
+        self, valid_vin, owner_id, current_time
+    ):
+        # Arrange
+        event = vehicles.VehicleOccupied(valid_vin, current_time)
+        state = vehicles.AvailableVehicle(valid_vin, owner_id)
+
+        # Act
+        result = state.evolve(event)
+
+        # Assert
+        assert isinstance(result, vehicles.OccupiedVehicle)
+        assert result.vin == valid_vin
+        assert result.owner == owner_id
+
+    def test_occupied_vehicle_evolve_to_returning_vehicle(
+        self, valid_vin, owner_id, current_time
+    ):
+        # Arrange
+        event = vehicles.VehicleReturnRequested(valid_vin, current_time)
+        state = vehicles.OccupiedVehicle(valid_vin, owner_id)
+
+        # Act
+        result = state.evolve(event)
+
+        # Assert
+        assert isinstance(result, vehicles.OccupiedReturningVehicle)
+        assert result.vin == valid_vin
+        assert result.owner == owner_id
+
+    def test_returning_vehicle_evolve_to_inventory_vehicle(
+        self, valid_vin, owner_id, current_time
+    ):
+        # Arrange
+        event = vehicles.VehicleReturned(valid_vin, current_time)
+        state = vehicles.ReturningVehicle(valid_vin, owner_id)
+
+        # Act
+        result = state.evolve(event)
+
+        # Assert
+        assert isinstance(result, vehicles.InventoryVehicle)
+        assert result.vin == valid_vin
+        assert result.owner == owner_id
