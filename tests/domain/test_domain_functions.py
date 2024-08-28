@@ -84,3 +84,38 @@ class TestDomainFunctions:
             rides.InitialRideState().evolve(not_applicable_event)
             == rides.InitialRideState()
         )
+
+    def test_evolve_on_ride_cancelled(self):
+        ride_id = value.RideId.random_uuid()
+
+        requested_ride_cancelled = rides.RequestedRideCancelled(ride_id, datetime.now())
+        requested_ride = rides.RequestedRide(
+            ride_id, rider_id, datetime.now(), origin, destination, datetime.now()
+        )
+        requested_ride_result = requested_ride.evolve(requested_ride_cancelled)
+
+        assert isinstance(requested_ride_result, rides.CancelledRequestedRide)
+        assert requested_ride_result.id == ride_id
+
+        scheduled_ride_cancelled = rides.ScheduledRideCancelled(
+            ride_id, VALID_VIN, datetime.now()
+        )
+        scheduled_ride = rides.ScheduledRide(
+            ride_id,
+            rider_id,
+            datetime.now(),
+            origin,
+            destination,
+            VALID_VIN,
+            datetime.now(),
+        )
+        scheduled_ride_result = scheduled_ride.evolve(scheduled_ride_cancelled)
+
+        assert isinstance(scheduled_ride_result, rides.CancelledScheduledRide)
+        assert scheduled_ride_result.id == ride_id
+
+        not_applicable_event = rides.RideRequested(
+            ride_id, rider_id, origin, destination, datetime.now(), datetime.now()
+        )
+        assert requested_ride.evolve(not_applicable_event) == requested_ride
+        assert scheduled_ride.evolve(not_applicable_event) == scheduled_ride
