@@ -1,6 +1,7 @@
+import abc
 import dataclasses
 import datetime
-from typing import TypeAlias
+from typing import Type, TypeAlias
 
 from autonomo.domain import rides, value, vehicles
 
@@ -24,7 +25,24 @@ class GeoCoordinates:
 
 # ---- Vehicle commands ----
 @dataclasses.dataclass()
-class AddVehicleCommandDTO:
+class VehicleCommandDTO(abc.ABC):
+    @classmethod
+    @abc.abstractmethod
+    def to_domain(
+        cls, instance: Type["VehicleCommandDTO"]
+    ) -> Type[vehicles.VehicleCommand]:
+        raise NotImplementedError()
+
+    @classmethod
+    @abc.abstractmethod
+    def from_domain(
+        cls, instance: Type[vehicles.VehicleCommand]
+    ) -> Type["VehicleCommandDTO"]:
+        raise NotImplementedError()
+
+
+@dataclasses.dataclass()
+class AddVehicleCommandDTO(VehicleCommandDTO):
     owner: str
     vin: str
 
@@ -40,7 +58,7 @@ class AddVehicleCommandDTO:
 
 
 @dataclasses.dataclass()
-class MakeVehicleAvailableCommandDTO:
+class MakeVehicleAvailableCommandDTO(VehicleCommandDTO):
     vin: str
 
     @classmethod
@@ -57,7 +75,7 @@ class MakeVehicleAvailableCommandDTO:
 
 
 @dataclasses.dataclass()
-class MarkVehicleOccupiedCommandDTO:
+class MarkVehicleOccupiedCommandDTO(VehicleCommandDTO):
     vin: str
 
     @classmethod
@@ -74,7 +92,7 @@ class MarkVehicleOccupiedCommandDTO:
 
 
 @dataclasses.dataclass()
-class MarkVehicleUnoccupiedCommandDTO:
+class MarkVehicleUnoccupiedCommandDTO(VehicleCommandDTO):
     vin: str
 
     @classmethod
@@ -91,7 +109,7 @@ class MarkVehicleUnoccupiedCommandDTO:
 
 
 @dataclasses.dataclass()
-class RequestVehicleReturnCommandDTO:
+class RequestVehicleReturnCommandDTO(VehicleCommandDTO):
     vin: str
 
     @classmethod
@@ -108,7 +126,7 @@ class RequestVehicleReturnCommandDTO:
 
 
 @dataclasses.dataclass()
-class ConfirmVehicleReturnCommandDTO:
+class ConfirmVehicleReturnCommandDTO(VehicleCommandDTO):
     vin: str
 
     @classmethod
@@ -125,7 +143,7 @@ class ConfirmVehicleReturnCommandDTO:
 
 
 @dataclasses.dataclass()
-class RemoveVehicleCommandDTO:
+class RemoveVehicleCommandDTO(VehicleCommandDTO):
     owner: str
     vin: str
 
@@ -142,7 +160,24 @@ class RemoveVehicleCommandDTO:
 
 # ---- Vehicle Events ----
 @dataclasses.dataclass()
-class VehicleAddedEventDTO:
+class VehicleEventDTO(abc.ABC):
+    @classmethod
+    @abc.abstractmethod
+    def to_domain(
+        cls, instance: Type["VehicleEventDTO"]
+    ) -> Type[vehicles.VehicleEvent]:
+        raise NotImplementedError()
+
+    @classmethod
+    @abc.abstractmethod
+    def from_domain(
+        cls, instance: Type[vehicles.VehicleEvent]
+    ) -> Type["VehicleEventDTO"]:
+        raise NotImplementedError()
+
+
+@dataclasses.dataclass()
+class VehicleAddedEventDTO(VehicleEventDTO):
     owner: str
     vin: str
 
@@ -158,7 +193,7 @@ class VehicleAddedEventDTO:
 
 
 @dataclasses.dataclass()
-class VehicleAvailableEventDTO:
+class VehicleAvailableEventDTO(VehicleEventDTO):
     vin: str
     available_at: datetime.datetime
 
@@ -178,7 +213,7 @@ class VehicleAvailableEventDTO:
 
 
 @dataclasses.dataclass()
-class VehicleOccupiedEventDTO:
+class VehicleOccupiedEventDTO(VehicleEventDTO):
     vin: str
     occupied_at: datetime.datetime
 
@@ -196,7 +231,7 @@ class VehicleOccupiedEventDTO:
 
 
 @dataclasses.dataclass()
-class VehicleReturnRequestedEventDTO:
+class VehicleReturnRequestedEventDTO(VehicleEventDTO):
     vin: str
     return_requested_at: datetime.datetime
 
@@ -217,7 +252,7 @@ class VehicleReturnRequestedEventDTO:
 
 
 @dataclasses.dataclass()
-class VehicleReturningEventDTO:
+class VehicleReturningEventDTO(VehicleEventDTO):
     vin: str
     returning_at: datetime.datetime
 
@@ -237,7 +272,7 @@ class VehicleReturningEventDTO:
 
 
 @dataclasses.dataclass()
-class VehicleReturnedEventDTO:
+class VehicleReturnedEventDTO(VehicleEventDTO):
     vin: str
     returned_at: datetime.datetime
 
@@ -255,7 +290,7 @@ class VehicleReturnedEventDTO:
 
 
 @dataclasses.dataclass()
-class VehicleRemovedEventDTO:
+class VehicleRemovedEventDTO(VehicleEventDTO):
     owner: str
     vin: str
     removed_at: datetime.datetime
@@ -275,7 +310,20 @@ class VehicleRemovedEventDTO:
 
 # ---- Read Models ----
 @dataclasses.dataclass()
-class InitialVehicleStateDTO:
+class IVehicleDTO(abc.ABC):
+    @classmethod
+    @abc.abstractmethod
+    def to_domain(cls, instance: Type["IVehicleDTO"]) -> Type[vehicles.Vehicle]:
+        raise NotImplementedError()
+
+    @classmethod
+    @abc.abstractmethod
+    def from_domain(cls, instance: Type[vehicles.Vehicle]) -> Type["IVehicleDTO"]:
+        raise NotImplementedError()
+
+
+@dataclasses.dataclass()
+class InitialVehicleStateDTO(IVehicleDTO):
     @classmethod
     def from_domain(
         cls, instance: vehicles.InitialVehicleState
@@ -290,7 +338,7 @@ class InitialVehicleStateDTO:
 
 
 @dataclasses.dataclass()
-class VehicleDTO:
+class VehicleDTO(IVehicleDTO):
     vin: str
     owner: str
     status: str
@@ -325,7 +373,7 @@ class VehicleDTO:
 
 
 @dataclasses.dataclass()
-class VehicleReadModelDTO:
+class VehicleReadModelDTO(IVehicleDTO):
     initial: InitialVehicleStateDTO | None = None
     vehicle: VehicleDTO | None = None
 
@@ -348,7 +396,20 @@ class VehicleReadModelDTO:
 
 # ---- Ride Commands ----
 @dataclasses.dataclass()
-class RequestRideCommandDTO:
+class RideCommandDTO(abc.ABC):
+    @classmethod
+    @abc.abstractmethod
+    def to_domain(cls, instance: Type["RideCommandDTO"]) -> Type[rides.RideCommand]:
+        raise NotImplementedError()
+
+    @classmethod
+    @abc.abstractmethod
+    def from_domain(cls, instance: Type[rides.RideCommand]) -> Type["RideCommandDTO"]:
+        raise NotImplementedError()
+
+
+@dataclasses.dataclass()
+class RequestRideCommandDTO(RideCommandDTO):
     rider: str
     origin_lat: float
     origin_long: float
@@ -380,7 +441,7 @@ class RequestRideCommandDTO:
 
 
 @dataclasses.dataclass()
-class ScheduleRideCommandDTO:
+class ScheduleRideCommandDTO(RideCommandDTO):
     ride: str
     vin: str
     pickup_time: datetime.datetime
@@ -403,7 +464,7 @@ class ScheduleRideCommandDTO:
 
 
 @dataclasses.dataclass()
-class ConfirmPickupCommandDTO:
+class ConfirmPickupCommandDTO(RideCommandDTO):
     ride: str
     vin: str
     rider: str
@@ -433,7 +494,7 @@ class ConfirmPickupCommandDTO:
 
 
 @dataclasses.dataclass()
-class EndRideCommandDTO:
+class EndRideCommandDTO(RideCommandDTO):
     ride: str
     drop_off_location_lat: float
     drop_off_location_long: float
@@ -457,7 +518,7 @@ class EndRideCommandDTO:
 
 
 @dataclasses.dataclass()
-class CancelRideCommandDTO:
+class CancelRideCommandDTO(RideCommandDTO):
     ride: str
 
     @classmethod
@@ -471,7 +532,20 @@ class CancelRideCommandDTO:
 
 # ---- Ride Events ----
 @dataclasses.dataclass()
-class RideRequestedEventDTO:
+class RideEventDTO(abc.ABC):
+    @classmethod
+    @abc.abstractmethod
+    def to_domain(cls, instance: Type["RideEventDTO"]) -> Type[rides.RideEvent]:
+        raise NotImplementedError()
+
+    @classmethod
+    @abc.abstractmethod
+    def from_domain(cls, instance: Type[rides.RideEvent]) -> Type["RideEventDTO"]:
+        raise NotImplementedError()
+
+
+@dataclasses.dataclass()
+class RideRequestedEventDTO(RideEventDTO):
     ride: str
     rider: str
     origin_lat: float
@@ -483,6 +557,7 @@ class RideRequestedEventDTO:
 
     @classmethod
     def from_domain(cls, instance: rides.RideRequested) -> "RideRequestedEventDTO":
+        print(instance)
         return cls(
             ride=str(instance.ride),
             rider=str(instance.rider),
@@ -509,7 +584,7 @@ class RideRequestedEventDTO:
 
 
 @dataclasses.dataclass()
-class RideScheduledEventDTO:
+class RideScheduledEventDTO(RideEventDTO):
     ride: str
     vin: str
     pickup_time: datetime.datetime
@@ -535,7 +610,7 @@ class RideScheduledEventDTO:
 
 
 @dataclasses.dataclass()
-class RideCancelledEventDTO:
+class RideCancelledEventDTO(RideEventDTO):
     ride: str
     cancelled_at: datetime.datetime
     vin: str | None = None
@@ -575,7 +650,7 @@ class RideCancelledEventDTO:
 
 
 @dataclasses.dataclass()
-class RiderPickedUpEventDTO:
+class RiderPickedUpEventDTO(RideEventDTO):
     ride: str
     vin: str
     rider: str
@@ -608,7 +683,7 @@ class RiderPickedUpEventDTO:
 
 
 @dataclasses.dataclass()
-class RiderDroppedOffEventDTO:
+class RiderDroppedOffEventDTO(RideEventDTO):
     ride: str
     vin: str
     drop_off_location_lat: float
@@ -639,7 +714,20 @@ class RiderDroppedOffEventDTO:
 
 # ---- Ride Read Models ----
 @dataclasses.dataclass()
-class InitialRideStateDTO:
+class IRideDTO(abc.ABC):
+    @classmethod
+    @abc.abstractmethod
+    def to_domain(cls, instance: Type["IRideDTO"]) -> Type[rides.Ride]:
+        raise NotImplementedError()
+
+    @classmethod
+    @abc.abstractmethod
+    def from_domain(cls, instance: Type[rides.Ride]) -> Type["IRideDTO"]:
+        raise NotImplementedError()
+
+
+@dataclasses.dataclass()
+class InitialRideStateDTO(IRideDTO):
     @classmethod
     def from_domain(cls, instance: rides.InitialRideState) -> "InitialRideStateDTO":
         return cls()
@@ -650,7 +738,7 @@ class InitialRideStateDTO:
 
 
 @dataclasses.dataclass()
-class RideDTO:
+class RideDTO(IRideDTO):
     id: str
     rider: str
     pickup_time: datetime.datetime
@@ -844,7 +932,7 @@ class RideDTO:
 
 
 @dataclasses.dataclass()
-class RideReadModelDTO:
+class RideReadModelDTO(IRideDTO):
     initial: InitialRideStateDTO | None = None
     ride: RideDTO | None = None
 
@@ -861,3 +949,117 @@ class RideReadModelDTO:
         elif instance.ride:
             return RideDTO.to_domain(instance.ride)
         raise ValueError("Invalid RideReadModelDTO, both initial and ride are None")
+
+
+# ---- Maps ---
+VEHICLE_EVENT_DTO_TO_DOMAIN_MAP: dict[
+    Type[VehicleEventDTO], Type[vehicles.VehicleEvent]
+] = {
+    VehicleAddedEventDTO: vehicles.VehicleAdded,
+    VehicleAvailableEventDTO: vehicles.VehicleAvailable,
+    VehicleOccupiedEventDTO: vehicles.VehicleOccupied,
+    VehicleReturnRequestedEventDTO: vehicles.VehicleReturnRequested,
+    VehicleReturningEventDTO: vehicles.VehicleReturning,
+    VehicleReturnedEventDTO: vehicles.VehicleReturned,
+    VehicleRemovedEventDTO: vehicles.VehicleRemoved,
+}
+
+VEHICLE_EVENT_DOMAIN_TO_DTO_MAP: dict[
+    Type[vehicles.VehicleEvent], Type[VehicleEventDTO]
+] = {
+    vehicles.VehicleAdded: VehicleAddedEventDTO,
+    vehicles.VehicleAvailable: VehicleAvailableEventDTO,
+    vehicles.VehicleOccupied: VehicleOccupiedEventDTO,
+    vehicles.VehicleReturnRequested: VehicleReturnRequestedEventDTO,
+    vehicles.VehicleReturning: VehicleReturningEventDTO,
+    vehicles.VehicleReturned: VehicleReturnedEventDTO,
+    vehicles.VehicleRemoved: VehicleRemovedEventDTO,
+}
+
+VEHICLE_READ_MODEL_DTO_TO_DOMAIN_MAP: dict[
+    Type[IVehicleDTO], Type[vehicles.Vehicle]
+] = {
+    InitialVehicleStateDTO: vehicles.InitialVehicleState,
+    VehicleDTO: vehicles.Vehicle,
+    VehicleReadModelDTO: vehicles.Vehicle,
+}
+
+VEHICLE_READ_MODEL_DOMAIN_TO_DTO_MAP: dict[
+    Type[vehicles.Vehicle], Type[IVehicleDTO]
+] = {
+    vehicles.InitialVehicleState: InitialVehicleStateDTO,
+    vehicles.Vehicle: VehicleDTO,
+    vehicles.InventoryVehicle: VehicleDTO,
+    vehicles.AvailableVehicle: VehicleDTO,
+}
+
+RIDE_EVENT_DTO_TO_DOMAIN_MAP: dict[Type[RideEventDTO], Type[rides.RideEvent]] = {
+    RideRequestedEventDTO: rides.RideRequested,
+    RideScheduledEventDTO: rides.RideScheduled,
+    RideCancelledEventDTO: rides.RequestedRideCancelled,
+    RideCancelledEventDTO: rides.ScheduledRideCancelled,
+    RiderPickedUpEventDTO: rides.RiderPickedUp,
+    RiderDroppedOffEventDTO: rides.RiderDroppedOff,
+}
+
+RIDE_EVENT_DOMAIN_TO_DTO_MAP: dict[Type[rides.RideEvent], Type[RideEventDTO]] = {
+    rides.RideRequested: RideRequestedEventDTO,
+    rides.RideScheduled: RideScheduledEventDTO,
+    rides.RequestedRideCancelled: RideCancelledEventDTO,
+    rides.ScheduledRideCancelled: RideCancelledEventDTO,
+    rides.RiderPickedUp: RiderPickedUpEventDTO,
+    rides.RiderDroppedOff: RiderDroppedOffEventDTO,
+}
+
+RIDE_READ_MODEL_DTO_TO_DOMAIN_MAP: dict[Type[IRideDTO], Type[rides.Ride]] = {
+    InitialRideStateDTO: rides.InitialRideState,
+    RideDTO: rides.Ride,
+    RideReadModelDTO: rides.Ride,
+}
+
+RIDE_READ_MODEL_DOMAIN_TO_DTO_MAP: dict[Type[rides.Ride], Type[IRideDTO]] = {
+    rides.InitialRideState: InitialRideStateDTO,
+    rides.Ride: RideDTO,
+    rides.RequestedRide: RideDTO,
+}
+
+
+VEHICLE_COMMAND_DTO_TO_DOMAIN_MAP: dict[
+    Type[VehicleCommandDTO], Type[vehicles.VehicleCommand]
+] = {
+    AddVehicleCommandDTO: vehicles.AddVehicle,
+    MakeVehicleAvailableCommandDTO: vehicles.MakeVehicleAvailable,
+    MarkVehicleOccupiedCommandDTO: vehicles.MarkVehicleOccupied,
+    MarkVehicleUnoccupiedCommandDTO: vehicles.MarkVehicleUnoccupied,
+    RequestVehicleReturnCommandDTO: vehicles.RequestVehicleReturn,
+    ConfirmVehicleReturnCommandDTO: vehicles.ConfirmVehicleReturn,
+    RemoveVehicleCommandDTO: vehicles.RemoveVehicle,
+}
+VEHICLE_COMMAND_DOMAIN_TO_DTO_MAP: dict[
+    Type[vehicles.VehicleCommand], Type[VehicleCommandDTO]
+] = {
+    vehicles.AddVehicle: AddVehicleCommandDTO,
+    vehicles.MakeVehicleAvailable: MakeVehicleAvailableCommandDTO,
+    vehicles.MarkVehicleOccupied: MarkVehicleOccupiedCommandDTO,
+    vehicles.MarkVehicleUnoccupied: MarkVehicleUnoccupiedCommandDTO,
+    vehicles.RequestVehicleReturn: RequestVehicleReturnCommandDTO,
+    vehicles.ConfirmVehicleReturn: ConfirmVehicleReturnCommandDTO,
+    vehicles.RemoveVehicle: RemoveVehicleCommandDTO,
+}
+
+
+RIDE_COMMAND_DTO_TO_DOMAIN_MAP: dict[Type[RideCommandDTO], Type[rides.RideCommand]] = {
+    RequestRideCommandDTO: rides.RequestRide,
+    ScheduleRideCommandDTO: rides.ScheduleRide,
+    ConfirmPickupCommandDTO: rides.ConfirmPickup,
+    EndRideCommandDTO: rides.EndRide,
+    CancelRideCommandDTO: rides.CancelRide,
+}
+
+RIDE_COMMAND_DOMAIN_TO_DTO_MAP: dict[Type[rides.RideCommand], Type[RideCommandDTO]] = {
+    rides.RequestRide: RequestRideCommandDTO,
+    rides.ScheduleRide: ScheduleRideCommandDTO,
+    rides.ConfirmPickup: ConfirmPickupCommandDTO,
+    rides.EndRide: EndRideCommandDTO,
+    rides.CancelRide: CancelRideCommandDTO,
+}
