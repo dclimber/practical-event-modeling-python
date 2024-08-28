@@ -78,15 +78,46 @@ class RequestRide(RideCommand):
         )
 
 
+@dataclasses.dataclass()
+class CancelRide(RideCommand):
+
+    def decide(self, state: Ride) -> list[Type[RideEvent]]:
+        if isinstance(state, RequestedRide):
+            return [
+                RequestedRideCancelled(
+                    self.ride,
+                    datetime.datetime.now(),
+                )
+            ]
+        if isinstance(state, ScheduledRide):
+            return [
+                ScheduledRideCancelled(self.ride, state.vin, datetime.datetime.now())
+            ]
+        raise RideCommandError(
+            f"Failed to apply RideCommand {self} to Ride {state}: Can only cancel a"
+            " requested or scheduled ride!"
+        )
+
+
 # ---- Events ----
 @dataclasses.dataclass()
 class RideRequested(RideEvent):
-    ride: value.RideId
     rider: value.UserId
     pickup_time: datetime.datetime
     origin: value.GeoCoordinates
     destination: value.GeoCoordinates
     requested_at: datetime.datetime
+
+
+@dataclasses.dataclass()
+class RequestedRideCancelled(RideEvent):
+    cancelled_at: datetime.datetime
+
+
+@dataclasses.dataclass()
+class ScheduledRideCancelled(RideEvent):
+    vin: value.Vin
+    cancelled_at: datetime.datetime
 
 
 # ---- Aggregate / Read Model ----
@@ -98,6 +129,12 @@ class InitialRideState(Ride):
     @property
     def id(self) -> NoReturn:
         raise IllegalStateError("Rides don't have an ID before they're created")
+
+    def __str__(self) -> str:
+        return "InitialRideState()"
+
+    def __repr__(self) -> str:
+        return str(self)
 
     def evolve(self, event: RideEvent) -> "Ride":
         if isinstance(event, RideRequested):
@@ -120,6 +157,19 @@ class RequestedRide(Ride):
     origin: value.GeoCoordinates
     destination: value.GeoCoordinates
     requested_at: datetime.datetime
+
+    def evolve(self, event: RideEvent) -> "Ride":
+        pass
+
+
+@dataclasses.dataclass()
+class ScheduledRide(Ride):
+    rider: value.UserId
+    pickup_time: datetime.datetime
+    origin: value.GeoCoordinates
+    destination: value.GeoCoordinates
+    vin: value.Vin
+    scheduled_at: datetime.datetime
 
     def evolve(self, event: RideEvent) -> "Ride":
         pass
