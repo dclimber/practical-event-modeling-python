@@ -190,6 +190,51 @@ class TestEvolveRide:
         assert isinstance(result, rides.CancelledScheduledRide)
         assert result.id == ride_id
 
+    def test_evolve_scheduled_ride_to_in_progress_ride(
+        self, ride_id, rider_id, origin, destination, valid_vin, current_time
+    ):
+        # Arrange
+        scheduled_ride = rides.ScheduledRide(
+            ride_id,
+            rider_id,
+            current_time,
+            origin,
+            destination,
+            valid_vin,
+            current_time,
+        )
+        event = rides.RiderPickedUp(ride_id, valid_vin, rider_id, origin, current_time)
+
+        # Act
+        result = scheduled_ride.evolve(event)
+
+        # Assert
+        assert isinstance(result, rides.InProgressRide)
+        assert result.id == ride_id
+
+    def test_evolve_in_progress_ride_to_completed_ride(
+        self, ride_id, rider_id, origin, destination, valid_vin, current_time
+    ):
+        # Arrange
+        in_progress_ride = rides.InProgressRide(
+            ride_id,
+            rider_id,
+            origin,
+            destination,
+            current_time,
+            valid_vin,
+            current_time,
+            current_time,
+        )
+        event = rides.RiderDroppedOff(ride_id, valid_vin, destination, current_time)
+
+        # Act
+        result = in_progress_ride.evolve(event)
+
+        # Assert
+        assert isinstance(result, rides.CompletedRide)
+        assert result.id == ride_id
+
 
 class TestMakeVehicleAvailable:
 
@@ -261,6 +306,101 @@ class TestMarkVehicleUnoccupied:
         # Act and Assert
         with pytest.raises(vehicles.VehicleCommandError):
             command.decide(invalid_state)
+
+
+class TestScheduleRide:
+
+    def test_schedule_ride_success(
+        self, ride_id, valid_vin, current_time, rider_id, origin, destination
+    ):
+        # Arrange
+        state = rides.RequestedRide(
+            ride_id, rider_id, current_time, origin, destination, current_time
+        )
+        command = rides.ScheduleRide(ride_id, valid_vin, current_time)
+
+        # Act
+        result = command.decide(state)
+
+        # Assert
+        assert len(result) == 1
+        assert isinstance(result[0], rides.RideScheduled)
+
+    def test_schedule_ride_fails_if_not_requested_ride(
+        self, ride_id, valid_vin, current_time
+    ):
+        # Arrange
+        state = rides.InitialRideState()
+        command = rides.ScheduleRide(ride_id, valid_vin, current_time)
+
+        # Act & Assert
+        with pytest.raises(rides.RideCommandError):
+            command.decide(state)
+
+
+class TestConfirmPickup:
+
+    def test_confirm_pickup_success(
+        self, ride_id, valid_vin, rider_id, origin, current_time
+    ):
+        # Arrange
+        state = rides.ScheduledRide(
+            ride_id, rider_id, current_time, origin, origin, valid_vin, current_time
+        )
+        command = rides.ConfirmPickup(ride_id, valid_vin, rider_id, origin)
+
+        # Act
+        result = command.decide(state)
+
+        # Assert
+        assert len(result) == 1
+        assert isinstance(result[0], rides.RiderPickedUp)
+
+    def test_confirm_pickup_fails_if_not_scheduled_ride(
+        self, ride_id, valid_vin, rider_id, origin
+    ):
+        # Arrange
+        state = rides.InitialRideState()
+        command = rides.ConfirmPickup(ride_id, valid_vin, rider_id, origin)
+
+        # Act & Assert
+        with pytest.raises(rides.RideCommandError):
+            command.decide(state)
+
+
+class TestEndRide:
+
+    def test_end_ride_success(
+        self, ride_id, valid_vin, rider_id, origin, destination, current_time
+    ):
+        # Arrange
+        state = rides.InProgressRide(
+            ride_id,
+            rider_id,
+            origin,
+            destination,
+            current_time,
+            valid_vin,
+            current_time,
+            current_time,
+        )
+        command = rides.EndRide(ride_id, destination)
+
+        # Act
+        result = command.decide(state)
+
+        # Assert
+        assert len(result) == 1
+        assert isinstance(result[0], rides.RiderDroppedOff)
+
+    def test_end_ride_fails_if_not_in_progress_ride(self, ride_id, destination):
+        # Arrange
+        state = rides.InitialRideState()
+        command = rides.EndRide(ride_id, destination)
+
+        # Act & Assert
+        with pytest.raises(rides.RideCommandError):
+            command.decide(state)
 
 
 class TestEvolveVehicle:
