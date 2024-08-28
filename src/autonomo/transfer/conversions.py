@@ -141,8 +141,6 @@ class RemoveVehicleCommandDTO:
 
 
 # ---- Vehicle Events ----
-
-
 @dataclasses.dataclass()
 class VehicleAddedEventDTO:
     owner: str
@@ -349,8 +347,6 @@ class VehicleReadModelDTO:
 
 
 # ---- Ride Commands ----
-
-
 @dataclasses.dataclass()
 class RequestRideCommandDTO:
     rider: str
@@ -474,8 +470,6 @@ class CancelRideCommandDTO:
 
 
 # ---- Ride Events ----
-
-
 @dataclasses.dataclass()
 class RideRequestedEventDTO:
     ride: str
@@ -644,8 +638,6 @@ class RiderDroppedOffEventDTO:
 
 
 # ---- Ride Read Models ----
-
-
 @dataclasses.dataclass()
 class InitialRideStateDTO:
     @classmethod

@@ -40,9 +40,7 @@ def current_time():
     return datetime.datetime.now()
 
 
-### Vehicle Command DTO Tests ###
-
-
+# ---- Vehicle Command DTO Tests ----
 class TestAddVehicleCommandDTO:
 
     def test_to_domain(self, valid_vin, owner_id):
@@ -91,9 +89,7 @@ class TestMakeVehicleAvailableCommandDTO:
         assert dto.vin == valid_vin.value
 
 
-### Vehicle Event DTO Tests ###
-
-
+# ---- Vehicle Event DTO Tests ----
 class TestVehicleAddedEventDTO:
 
     def test_to_domain(self, valid_vin, owner_id):
@@ -148,9 +144,7 @@ class TestVehicleAvailableEventDTO:
         assert dto.available_at == current_time
 
 
-### Ride Command DTO Tests ###
-
-
+# ---- Ride Command DTO Tests ----
 class TestRequestRideCommandDTO:
 
     def test_to_domain(self, rider_id, origin, destination, current_time):
@@ -194,9 +188,7 @@ class TestRequestRideCommandDTO:
         assert dto.pickup_time == current_time
 
 
-### Ride Event DTO Tests ###
-
-
+# ---- Ride Event DTO Tests ----
 class TestRideRequestedEventDTO:
 
     def test_to_domain(self, ride_id, rider_id, origin, destination, current_time):
