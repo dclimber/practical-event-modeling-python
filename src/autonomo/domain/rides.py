@@ -136,6 +136,9 @@ class InitialRideState(Ride):
     def __repr__(self) -> str:
         return str(self)
 
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, InitialRideState)
+
     def evolve(self, event: RideEvent) -> "Ride":
         if isinstance(event, RideRequested):
             return RequestedRide(
